@@ -261,7 +261,7 @@ def check_data_leakage(X, y, target):
     
     # Verificar si el target está en las features
     if target in X.columns:
-        st.error(f"❌ DATA LEAKAGE: El target '{target}' está en las features!")
+        st.error(f"DATA LEAKAGE: El target '{target}' está en las features!")
         X = X.drop(columns=[target])
         leakage_detected = True
 
@@ -271,14 +271,14 @@ def check_data_leakage(X, y, target):
         correlations = X[numeric_cols].corrwith(y).abs().sort_values(ascending=False)
         high_corr = correlations[correlations > 0.7]
         if len(high_corr) > 0:
-            st.warning("⚠️ Variables con correlación alta (>0.7):")
+            st.warning("Variables con correlación alta (>0.7):")
             for var, corr in high_corr.items():
                 st.write(f"- {var}: {corr:.4f}")
         else:
-            st.success("✅ No hay variables con correlación peligrosa")
+            st.success("No hay variables con correlación peligrosa")
 
     if not leakage_detected:
-        st.success("✅ No se detectó data leakage evidente después de la limpieza")
+        st.success("No se detectó data leakage evidente después de la limpieza")
     
     return X, leakage_detected
 
@@ -303,21 +303,18 @@ def analyze_target_distribution(y):
         st.info(f"**Ratio of desbalanceo:** {minority_ratio:.3f}")
 
         if minority_ratio < 0.3:
-            st.warning("⚠️ Desbalanceo severo detectado - Se recomienda usar técnicas de balanceo")
+            st.warning("Desbalanceo severo detectado - Se recomienda usar técnicas de balanceo")
         elif minority_ratio < 0.5:
-            st.warning("⚠️ Desbalanceo moderado detectado")
+            st.warning("Desbalanceo moderado detectado")
         else:
-            st.success("✅ Distribución balanceada")
+            st.success("Distribución balanceada")
         
         return minority_ratio
     return 0
 
 # =========================== INTERFAZ PRINCIPAL ===========================
 def main():
-    st.title("🤖 AutoML con Diagnóstico Completo")
-    st.markdown("""
-    Pipeline para entrenar y comparar algoritmos con diagnóstico avanzado de data leakage y problemas de datos.
-    """)
+    st.title("Modelo automático de predicción")
 
     # ========== CONFIGURACIÓN EN LA BARRA LATERAL ==========
     st.sidebar.header("⚙️ Configuración")
@@ -400,14 +397,14 @@ def main():
     use_subsample = st.sidebar.checkbox("Usar submuestra para diagnóstico rápido", value=True)
     subsample_size = st.sidebar.slider("Tamaño de submuestra", 1000, 10000, 5000) if use_subsample else None
 
-    run = st.sidebar.button("🚀 Ejecutar pipeline", type='primary')
+    run = st.sidebar.button("Ejecutar pipeline", type='primary')
 
     # ========== CARGA DE DATOS ==========
     df = load_data(file, subsample_size if use_subsample else None)
     st.success(f"Dataset cargado: {df.shape[0]} filas × {df.shape[1]} columnas")
 
     # ========== DIAGNÓSTICO DE DATOS ==========
-    st.header("🔍 Diagnóstico de Calidad de Datos")
+    st.header("Diagnóstico de Calidad de Datos")
 
     # Elegir target
     cols = df.columns.tolist()
@@ -421,19 +418,19 @@ def main():
     y = df[target]
 
     # ========== LIMPIEZA AUTOMÁTICA DE VARIABLES ==========
-    st.header("🔧 Corrección Automática de Data Leakage")
+    st.header("Corrección Automática de Data Leakage")
     
     X, variables_eliminadas = remove_problematic_variables(X, y, target)
 
     # Mostrar resultados de la limpieza
     if variables_eliminadas:
-        st.warning("🚨 Variables eliminadas automáticamente:")
+        st.warning("Variables eliminadas automáticamente:")
         for var in variables_eliminadas:
             st.write(f"- {var}")
-        st.success(f"✅ Total de variables eliminadas: {len(variables_eliminadas)}")
-        st.info(f"📊 Variables restantes: {X.shape[1]}")
+        st.success(f"Total de variables eliminadas: {len(variables_eliminadas)}")
+        st.info(f"Variables restantes: {X.shape[1]}")
     else:
-        st.success("✅ No se encontraron variables problemáticas para eliminar")
+        st.success("No se encontraron variables problemáticas para eliminar")
 
     # ========== ANÁLISIS DE VARIABLES ==========
     st.subheader("1. Análisis de Variables (Después de limpieza)")
@@ -465,7 +462,7 @@ def main():
     minority_ratio = analyze_target_distribution(y)
 
     if len(y.value_counts()) == 1:
-        st.error("❌ ¡Solo hay una clase en el target! No es un problema de clasificación válido.")
+        st.error("¡Solo hay una clase en el target! No es un problema de clasificación válido.")
         return
 
     # ========== MODELO DE LÍNEA BASE ==========
@@ -481,29 +478,29 @@ def main():
         st.info(f"Accuracy de línea base (siempre predecir mayoritaria): {dummy_acc:.4f}")
         
         if dummy_acc > 0.95:
-            st.warning("⚠️ El problema puede ser trivial - accuracy base muy alta")
+            st.warning("El problema puede ser trivial - accuracy base muy alta")
         elif dummy_acc > 0.8:
-            st.info("ℹ️ Accuracy base moderada - Problema desbalanceado")
+            st.info("Accuracy base moderada - Problema desbalanceado")
         else:
-            st.success("✅ Accuracy base normal")
+            st.success("Accuracy base normal")
             
     except Exception as e:
         st.warning(f"No se pudo calcular modelo base: {e}")
 
     # Mostrar recomendación de técnica
     if minority_ratio < 0.3 and balance_method == 'ninguna':
-        st.warning("💡 Recomendación: Considere usar SMOTE o class_weight para manejar el desbalanceo")
+        st.warning("Recomendación: Considere usar SMOTE para manejar el desbalanceo")
 
     # ========== EJECUCIÓN PRINCIPAL ==========
     if run:
         # Validar que queden variables después de la limpieza
         if X.shape[1] == 0:
-            st.error("❌ No hay variables disponibles después de la limpieza. Revise el dataset.")
+            st.error("No hay variables disponibles después de la limpieza. Revise el dataset.")
             return
             
         # Validar división de datos
         if test_pct + oot_pct >= 1.0:
-            st.error("❌ La suma de Test + OOT no puede ser igual o mayor al 100%")
+            st.error("La suma de Test + OOT no puede ser igual o mayor al 100%")
             return
             
         progress_bar = st.progress(0)
@@ -564,7 +561,7 @@ def main():
                     continue
 
             if not trained_models:
-                st.error("❌ No se pudo entrenar ningún modelo")
+                st.error("No se pudo entrenar ningún modelo")
                 return
 
             # ========== EVALUACIÓN ==========
@@ -615,7 +612,7 @@ def main():
 
                     # Verificar si hay sobreajuste perfecto
                     if train_metrics[name]['accuracy'] == 1.0 and test_metrics[name]['accuracy'] == 1.0:
-                        st.error(f"❌ POSIBLE PROBLEMA: {name} tiene accuracy perfecto en train y test")
+                        st.error(f"POSIBLE PROBLEMA: {name} tiene accuracy perfecto en train y test")
                         
                 except Exception as e:
                     st.error(f"Error evaluando {name}: {str(e)}")
@@ -626,7 +623,7 @@ def main():
 
         # ========== REPORTE FINAL ==========
         status_text.text("Generando reporte final...")
-        st.header("📊 Resultados del Pipeline")
+        st.header("Resultados del Pipeline")
         st.info(f"**Técnica de balanceo utilizada:** {balance_method.upper() if balance_method != 'ninguna' else 'Ninguna'}")
         
         # col1, col2, col3 = st.columns(3)
@@ -635,7 +632,7 @@ def main():
         # col3.metric("OOT", f"{len(X_oot)} muestras")
 
         # # Distribución de clases
-        # st.subheader("📈 Distribución de clases por conjunto")
+        # st.subheader("Distribución de clases por conjunto")
         # dist_data = {
         #     'Conjunto': ['Train', 'Test', 'OOT'],
         #     'Clase 0': [sum(y_train == 0), sum(y_test == 0), sum(y_oot == 0)],
@@ -645,7 +642,7 @@ def main():
         # st.table(pd.DataFrame(dist_data))
 
         # Métricas de evaluación
-        st.subheader("🔍 Métricas de Evaluación")
+        st.subheader("Métricas de Evaluación")
         
         if best_name is not None:
             st.success(f"🏆 **Mejor modelo:** {best_name} - {metric.upper()}: {best_score:.4f}")
@@ -665,7 +662,7 @@ def main():
             st.table(pd.DataFrame(metrics_data))
 
         # Validación OOT
-        st.subheader("✅ Validación en OOT (Out-of-Time)")
+        st.subheader("Validación en OOT (Out-of-Time)")
         oot_table = []
         for name in trained_models.keys():
             oot_table.append({
@@ -680,7 +677,7 @@ def main():
 
         # Matriz de confusión
         if best_name is not None:
-            st.subheader("📊 Matriz de Confusión del Mejor Modelo (Test)")
+            st.subheader("Matriz de Confusión del Mejor Modelo (Test)")
             bm = trained_models[best_name]
             y_pred = bm.predict(X_test)
             cm_fig = plot_confusion_matrix(y_test, y_pred, sorted(y.unique()))
