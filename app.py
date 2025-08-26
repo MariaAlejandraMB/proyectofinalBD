@@ -16,12 +16,16 @@ from imblearn.over_sampling import SMOTE, RandomOverSampler
 from imblearn.under_sampling import RandomUnderSampler
 from imblearn.pipeline import Pipeline as ImbPipeline
 import time
+import plotly.express as px
+import plotly.graph_objects as go
+from plotly.subplots import make_subplots
 
 # Configuración de la página
 st.set_page_config(
     page_title="Modelo automático de predicción",
     page_icon="🤖",
     layout="wide",
+    initial_sidebar_state="expanded"
 )
 
 # =========================== CONFIGURACIÓN Y CONSTANTES ===========================
@@ -48,7 +52,6 @@ ALGO_KEY = {
 }
 
 PAYMENT_KEYWORDS = ['payment', 'pay', 'method', 'type', 'credit', 'debit', 'boleto', 'voucher']
-# PAYMENT_KEYWORDS = ['payment_method', 'payment_type']
 
 # =========================== FUNCIONES DE UTILIDAD ===========================
 def parse_list_from_text(text, cast_fn=float):
@@ -86,24 +89,22 @@ def plot_confusion_matrix(y_true, y_pred, class_names):
     plt.xticks(rotation=45)
     return fig
 
+def plot_confusion_matrix_plotly(y_true, y_pred, class_names):
+    """Genera una matriz de confusión interactiva con Plotly"""
+    cm = confusion_matrix(y_true, y_pred)
+    fig = px.imshow(cm, 
+                    text_auto=True, 
+                    aspect="auto",
+                    labels=dict(x="Predicción", y="Real", color="Count"),
+                    x=class_names,
+                    y=class_names,
+                    color_continuous_scale='Blues')
+    fig.update_layout(title='Matriz de Confusión')
+    return fig
+
 def verify_balancing(y_train, balance_method, model_name):
     """Verifica y muestra información sobre el balanceo aplicado"""
-    # st.write(f"**Verificación de balanceo para {model_name}:**")
-    # st.write(f"- Método de balanceo: {balance_method}")
-    # st.write(f"- Distribución original: {dict(zip(*np.unique(y_train, return_counts=True)))}")
-    
-    # if balance_method == 'class_weight':
-    #     st.write("- Se aplicaron pesos automáticos a las clases")
-    # elif balance_method == 'scale_pos_weight':
-    #     if len(np.unique(y_train)) == 2:
-    #         ratio = len(y_train[y_train == 0]) / len(y_train[y_train == 1])
-    #         st.write(f"- Se aplicó scale_pos_weight con ratio: {ratio:.2f}")
-    #     else:
-    #         st.warning("- scale_pos_weight solo funciona para problemas binarios")
-    # elif balance_method in ['smote', 'oversample', 'undersample']:
-    #     st.write("- Se aplicó remuestreo con la técnica seleccionada")
-    # else:
-    #     st.write("- No se aplicó técnica de balanceo")
+    pass
 
 def plot_class_distribution_comparison(y_original, y_resampled, title):
     """Compara visualmente la distribución de clases antes y después del balanceo"""
@@ -131,6 +132,40 @@ def plot_class_distribution_comparison(y_original, y_resampled, title):
     
     plt.suptitle(title)
     plt.tight_layout()
+    return fig
+
+def plot_class_distribution_plotly(y_original, y_resampled, title):
+    """Compara visualmente la distribución de clases antes y después del balanceo con Plotly"""
+    fig = make_subplots(rows=1, cols=2, subplot_titles=('Distribución Original', 'Distribución después del Balanceo'))
+    
+    # Distribución original
+    original_counts = y_original.value_counts()
+    fig.add_trace(
+        go.Bar(x=[str(x) for x in original_counts.index], y=original_counts.values, name="Original"),
+        row=1, col=1
+    )
+    
+    # Distribución después del balanceo
+    if y_resampled is not None:
+        resampled_counts = y_resampled.value_counts()
+        fig.add_trace(
+            go.Bar(x=[str(x) for x in resampled_counts.index], y=resampled_counts.values, name="Balanceado"),
+            row=1, col=2
+        )
+    else:
+        fig.add_annotation(
+            text="No se aplicó balanceo",
+            xref="x2", yref="y2",
+            x=0.5, y=0.5, showarrow=False,
+            row=1, col=2
+        )
+    
+    fig.update_layout(height=400, title_text=title)
+    fig.update_xaxes(title_text="Clase", row=1, col=1)
+    fig.update_xaxes(title_text="Clase", row=1, col=2)
+    fig.update_yaxes(title_text="Count", row=1, col=1)
+    fig.update_yaxes(title_text="Count", row=1, col=2)
+    
     return fig
 
 # =========================== FUNCIONES DE ENTRENAMIENTO ===========================
@@ -285,17 +320,31 @@ def check_data_leakage(X, y, target):
 def analyze_target_distribution(y):
     """Analiza y visualiza la distribución del target"""
     class_dist = y.value_counts()
-    fig, ax = plt.subplots(1, 2, figsize=(12, 5))
-
-    ax[0].bar([str(x) for x in class_dist.index], class_dist.values)
-    ax[0].set_title('Distribución de clases')
-    ax[0].set_xlabel('Clase')
-    ax[0].set_ylabel('Count')
-
-    ax[1].pie(class_dist.values, labels=[str(x) for x in class_dist.index], autopct='%1.1f%%')
-    ax[1].set_title('Proporción de clases')
-
-    st.pyplot(fig)
+    
+    # Crear gráfico con Plotly
+    fig = make_subplots(rows=1, cols=2, 
+                        subplot_titles=('Distribución de clases', 'Proporción de clases'),
+                        specs=[[{"type": "bar"}, {"type": "pie"}]])
+    
+    # Gráfico de barras
+    fig.add_trace(
+        go.Bar(x=[str(x) for x in class_dist.index], y=class_dist.values, 
+               marker_color=px.colors.qualitative.Set3),
+        row=1, col=1
+    )
+    
+    # Gráfico de pie
+    fig.add_trace(
+        go.Pie(labels=[str(x) for x in class_dist.index], values=class_dist.values,
+               marker_colors=px.colors.qualitative.Set3),
+        row=1, col=2
+    )
+    
+    fig.update_layout(height=400, showlegend=False)
+    fig.update_xaxes(title_text="Clase", row=1, col=1)
+    fig.update_yaxes(title_text="Count", row=1, col=1)
+    
+    st.plotly_chart(fig, use_container_width=True)
 
     # Análisis de desbalanceo
     if len(class_dist) > 1:
@@ -317,91 +366,104 @@ def main():
     st.title("Modelo automático de predicción")
 
     # ========== CONFIGURACIÓN EN LA BARRA LATERAL ==========
-    st.sidebar.header("⚙️ Configuración")
-    file = st.sidebar.file_uploader("Cargar dataset (CSV)", type=['csv'])
+    with st.sidebar:
+        st.header("⚙️ Configuración")
+        file = st.file_uploader("Cargar dataset (CSV)", type=['csv'])
 
-    if file is None:
-        st.info("Cargue un CSV para comenzar.")
-        return
+        if file is None:
+            st.info("Cargue un CSV para comenzar.")
+            return
 
-    # Parámetros básicos
-    metric_options = ['accuracy', 'f1', 'precision', 'recall', 'balanced_accuracy', 'roc_auc']
-    metric = st.sidebar.selectbox("Métrica objetivo", metric_options, index=1)
-    cv_folds = st.sidebar.slider("Folds para validación cruzada", 3, 10, 3)
+        # Parámetros básicos
+        metric_options = ['accuracy', 'f1', 'precision', 'recall', 'balanced_accuracy', 'roc_auc']
+        metric = st.selectbox("Métrica objetivo", metric_options, index=1)
+        cv_folds = st.slider("Folds para validación cruzada", 3, 10, 3)
 
-    # Filtrar algoritmos disponibles
-    available_algos = ['Random Forest', 'Logistic Regression']
-    if XGB_AVAILABLE:
-        available_algos.append('XGBoost')
-    
-    algos = st.sidebar.multiselect(
-        "Algoritmos a competir",
-        available_algos,
-        default=['Random Forest', 'Logistic Regression']
-    )
+        # Filtrar algoritmos disponibles
+        available_algos = ['Random Forest', 'Logistic Regression']
+        if XGB_AVAILABLE:
+            available_algos.append('XGBoost')
+        
+        algos = st.multiselect(
+            "Algoritmos a competir",
+            available_algos,
+            default=['Random Forest', 'Logistic Regression']
+        )
 
-    st.sidebar.subheader("División de datos")
-    test_pct = st.sidebar.slider("% Test", 10, 30, 20, step=5) / 100.0
-    oot_pct = st.sidebar.slider("% OOT", 10, 30, 20, step=5) / 100.0
+        st.subheader("División de datos")
+        test_pct = st.slider("% Test", 10, 30, 20, step=5) / 100.0
+        oot_pct = st.slider("% OOT", 10, 30, 20, step=5) / 100.0
 
-    if test_pct + oot_pct >= 1.0:
-        st.sidebar.error("La suma de Test + OOT no puede exceder 100%")
-        train_pct = 0
-    else:
-        train_pct = 1.0 - test_pct - oot_pct
+        if test_pct + oot_pct >= 1.0:
+            st.error("La suma de Test + OOT no puede exceder 100%")
+            train_pct = 0
+        else:
+            train_pct = 1.0 - test_pct - oot_pct
 
-    st.sidebar.caption(f"Train: {train_pct*100:.0f}% | Test: {test_pct*100:.0f}% | OOT: {oot_pct*100:.0f}%")
+        st.caption(f"Train: {train_pct*100:.0f}% | Test: {test_pct*100:.0f}% | OOT: {oot_pct*100:.0f}%")
 
-    # Técnicas para manejar desbalanceo
-    st.sidebar.subheader("Manejo de Desbalanceo")
-    balance_method = st.sidebar.selectbox(
-        "Técnica para clases desbalanceadas",
-        ['ninguna', 'smote', 'oversample', 'undersample'],
-        index=0,
-        help="Seleccione técnica para manejar desbalanceo de clases"
-    )
+        # Técnicas para manejar desbalanceo
+        st.subheader("Manejo de Desbalanceo")
+        balance_method = st.selectbox(
+            "Técnica para clases desbalanceadas",
+            ['ninguna', 'smote', 'oversample', 'undersample'],
+            index=0,
+            help="Seleccione técnica para manejar desbalanceo de clases"
+        )
 
-    # Grids por algoritmo
-    st.sidebar.subheader("Grids de hiperparámetros")
+        # Grids por algoritmo
+        st.subheader("Grids de hiperparámetros")
 
-    st.sidebar.markdown("**Random Forest**")
-    rf_n_estimators = st.sidebar.text_input("n_estimators", "50, 100")
-    rf_max_depth = st.sidebar.text_input("max_depth", "None, 10")
-    rf_min_samples_split = st.sidebar.text_input("min_samples_split", "2, 5")
-    rf_grid = {
-        'n_estimators': parse_list_from_text(rf_n_estimators, int),
-        'max_depth': parse_list_from_text(rf_max_depth, int),
-        'min_samples_split': parse_list_from_text(rf_min_samples_split, int),
-    }
-
-    st.sidebar.markdown("**Logistic Regression**")
-    lr_c_vals = st.sidebar.text_input("C", "0.1, 1.0")
-    lr_grid = {
-        'C': parse_list_from_text(lr_c_vals, float),
-        'penalty': ['l2'],
-    }
-
-    xgb_grid = None
-    if XGB_AVAILABLE and 'XGBoost' in algos:
-        st.sidebar.markdown("**XGBoost**")
-        xgb_n_estimators = st.sidebar.text_input("n_estimators (XGB)", "50, 100")
-        xgb_max_depth = st.sidebar.text_input("max_depth (XGB)", "3, 6")
-        xgb_learning_rate = st.sidebar.text_input("learning_rate (XGB)", "0.1")
-        xgb_grid = {
-            'n_estimators': parse_list_from_text(xgb_n_estimators, int),
-            'max_depth': parse_list_from_text(xgb_max_depth, int),
-            'learning_rate': parse_list_from_text(xgb_learning_rate, float),
+        st.markdown("**Random Forest**")
+        rf_n_estimators = st.text_input("n_estimators", "50, 100")
+        rf_max_depth = st.text_input("max_depth", "None, 10")
+        rf_min_samples_split = st.text_input("min_samples_split", "2, 5")
+        rf_grid = {
+            'n_estimators': parse_list_from_text(rf_n_estimators, int),
+            'max_depth': parse_list_from_text(rf_max_depth, int),
+            'min_samples_split': parse_list_from_text(rf_min_samples_split, int),
         }
 
-    # Añadir opción para usar submuestra
-    use_subsample = st.sidebar.checkbox("Usar submuestra para diagnóstico rápido", value=True)
-    subsample_size = st.sidebar.slider("Tamaño de submuestra", 1000, 10000, 5000) if use_subsample else None
+        st.markdown("**Logistic Regression**")
+        lr_c_vals = st.text_input("C", "0.1, 1.0")
+        lr_grid = {
+            'C': parse_list_from_text(lr_c_vals, float),
+            'penalty': ['l2'],
+        }
 
-    run = st.sidebar.button("Ejecutar pipeline", type='primary')
+        xgb_grid = None
+        if XGB_AVAILABLE and 'XGBoost' in algos:
+            st.markdown("**XGBoost**")
+            xgb_n_estimators = st.text_input("n_estimators (XGB)", "50, 100")
+            xgb_max_depth = st.text_input("max_depth (XGB)", "3, 6")
+            xgb_learning_rate = st.text_input("learning_rate (XGB)", "0.1")
+            xgb_grid = {
+                'n_estimators': parse_list_from_text(xgb_n_estimators, int),
+                'max_depth': parse_list_from_text(xgb_max_depth, int),
+                'learning_rate': parse_list_from_text(xgb_learning_rate, float),
+            }
+
+        # Añadir opción para usar submuestra
+        use_subsample = st.checkbox("Usar submuestra para diagnóstico rápido", value=True)
+        subsample_size = st.slider("Tamaño de submuestra", 1000, 10000, 5000) if use_subsample else None
+
+        run = st.button("Ejecutar pipeline", type='primary', use_container_width=True)
 
     # ========== CARGA DE DATOS ==========
     df = load_data(file, subsample_size if use_subsample else None)
-    st.success(f"Dataset cargado: {df.shape[0]} filas × {df.shape[1]} columnas")
+    
+    # Mostrar información del dataset
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        st.metric("Filas", df.shape[0])
+    with col2:
+        st.metric("Columnas", df.shape[1])
+    with col3:
+        st.metric("Tamaño del dataset", f"{df.memory_usage(deep=True).sum() / 1024**2:.2f} MB")
+    
+    # Mostrar vista previa de los datos
+    with st.expander("Vista previa de los datos"):
+        st.dataframe(df.head())
 
     # ========== DIAGNÓSTICO DE DATOS ==========
     st.header("Diagnóstico de Calidad de Datos")
@@ -433,7 +495,7 @@ def main():
         st.success("No se encontraron variables problemáticas para eliminar")
 
     # ========== ANÁLISIS DE VARIABLES ==========
-    st.subheader("1. Análisis de Variables (Después de limpieza)")
+    st.subheader("Análisis de Variables (Después de limpieza)")
 
     if X.shape[1] > 20:
         st.write(f"**Total de variables:** {X.shape[1]}")
@@ -454,11 +516,11 @@ def main():
         st.table(pd.DataFrame(col_stats).head(10))
 
     # ========== VERIFICACIÓN OF DATA LEAKAGE ==========
-    st.subheader("2. Verificación de Data Leakage (Después de limpieza)")
+    st.subheader("Verificación de Data Leakage (Después de limpieza)")
     X, leakage_detected = check_data_leakage(X, y, target)
 
     # ========== ANÁLISIS DE DISTRIBUCIÓN DEL TARGET ==========
-    st.subheader("3. Distribución de la Variable Objetivo")
+    st.subheader("Distribución de la Variable Objetivo")
     minority_ratio = analyze_target_distribution(y)
 
     if len(y.value_counts()) == 1:
@@ -466,7 +528,7 @@ def main():
         return
 
     # ========== MODELO DE LÍNEA BASE ==========
-    st.subheader("4. Modelo de Línea Base (Después de limpieza)")
+    st.subheader("Modelo de Línea Base (Después de limpieza)")
     try:
         dummy = DummyClassifier(strategy='most_frequent')
         sample_size = min(1000, len(X))
@@ -550,8 +612,8 @@ def main():
                     
                     # Verificar el balanceo aplicado
                     st.subheader(f"Balanceo aplicado para {name}")
-                    fig = plot_class_distribution_comparison(y_train, y_resampled, f"Distribución de clases - {name}")
-                    st.pyplot(fig)
+                    fig = plot_class_distribution_plotly(y_train, y_resampled, f"Distribución de clases - {name}")
+                    st.plotly_chart(fig, use_container_width=True)
                     
                     verify_balancing(y_train, balance_method if balance_method != 'ninguna' else 'ninguna', name)
                     
@@ -626,68 +688,68 @@ def main():
         st.header("Resultados del Pipeline")
         st.info(f"**Técnica de balanceo utilizada:** {balance_method.upper() if balance_method != 'ninguna' else 'Ninguna'}")
         
-        # col1, col2, col3 = st.columns(3)
-        # col1.metric("Train", f"{len(X_train)} muestras")
-        # col2.metric("Test", f"{len(X_test)} muestras")
-        # col3.metric("OOT", f"{len(X_oot)} muestras")
-
-        # # Distribución de clases
-        # st.subheader("Distribución de clases por conjunto")
-        # dist_data = {
-        #     'Conjunto': ['Train', 'Test', 'OOT'],
-        #     'Clase 0': [sum(y_train == 0), sum(y_test == 0), sum(y_oot == 0)],
-        #     'Clase 1': [sum(y_train == 1), sum(y_test == 1), sum(y_oot == 1)],
-        #     'Total': [len(y_train), len(y_test), len(y_oot)]
-        # }
-        # st.table(pd.DataFrame(dist_data))
-
         # Métricas de evaluación
         st.subheader("Métricas de Evaluación")
         
         if best_name is not None:
             st.success(f"🏆 **Mejor modelo:** {best_name} - {metric.upper()}: {best_score:.4f}")
             
+            # Crear tabla de métricas
             metrics_data = []
             for name in trained_models.keys():
                 metrics_data.append({
                     'Modelo': name,
                     'Técnica Balanceo': training_results[name]['balance_method'],
-                    'Accuracy': f"{test_metrics[name]['accuracy']:.4f}",
-                    'Precision': f"{test_metrics[name]['precision']:.4f}",
-                    'Recall': f"{test_metrics[name]['recall']:.4f}",
-                    'F1 Score': f"{test_metrics[name]['f1']:.4f}",
-                    'Balanced Acc': f"{test_metrics[name]['balanced_accuracy']:.4f}",
+                    'Accuracy': test_metrics[name]['accuracy'],
+                    'Precision': test_metrics[name]['precision'],
+                    'Recall': test_metrics[name]['recall'],
+                    'F1 Score': test_metrics[name]['f1'],
+                    'Balanced Acc': test_metrics[name]['balanced_accuracy'],
                 })
             
-            st.table(pd.DataFrame(metrics_data))
+            # Convertir a DataFrame y mostrar
+            metrics_df = pd.DataFrame(metrics_data)
+            st.dataframe(metrics_df.style.format({
+                'Accuracy': '{:.4f}',
+                'Precision': '{:.4f}',
+                'Recall': '{:.4f}',
+                'F1 Score': '{:.4f}',
+                'Balanced Acc': '{:.4f}'
+            }))
 
         # Validación OOT
         st.subheader("Validación en OOT (Out-of-Time)")
-        oot_table = []
+        oot_data = []
         for name in trained_models.keys():
-            oot_table.append({
+            oot_data.append({
                 'Modelo': name,
-                f'{metric.upper()} Test': round(test_metrics[name][metric], 4),
-                f'{metric.upper()} OOT': round(oot_metrics[name][metric], 4),
-                'Recall Test': round(test_metrics[name]['recall'], 4),
-                'Recall OOT': round(oot_metrics[name]['recall'], 4),
-                'Caída OOT': round(oot_drops[name], 4),
+                f'{metric.upper()} Test': test_metrics[name][metric],
+                f'{metric.upper()} OOT': oot_metrics[name][metric],
+                'Recall Test': test_metrics[name]['recall'],
+                'Recall OOT': oot_metrics[name]['recall'],
+                'Caída OOT': oot_drops[name],
             })
-        st.table(pd.DataFrame(oot_table))
+        
+        oot_df = pd.DataFrame(oot_data)
+        st.dataframe(oot_df.style.format({
+            f'{metric.upper()} Test': '{:.4f}',
+            f'{metric.upper()} OOT': '{:.4f}',
+            'Recall Test': '{:.4f}',
+            'Recall OOT': '{:.4f}',
+            'Caída OOT': '{:.4f}'
+        }))
 
         # Matriz de confusión
         if best_name is not None:
             st.subheader("Matriz de Confusión del Mejor Modelo (Test)")
             bm = trained_models[best_name]
             y_pred = bm.predict(X_test)
-            cm_fig = plot_confusion_matrix(y_test, y_pred, sorted(y.unique()))
-            st.pyplot(cm_fig)
+            cm_fig = plot_confusion_matrix_plotly(y_test, y_pred, sorted(y.unique()))
+            st.plotly_chart(cm_fig, use_container_width=True)
 
         progress_bar.progress(100)
         status_text.text("¡Completado!")
         st.balloons()
-
-        st.caption("Pipeline de AutoML con diagnóstico completo y limpieza automática de data leakage.")
 
 if __name__ == "__main__":
     main()
