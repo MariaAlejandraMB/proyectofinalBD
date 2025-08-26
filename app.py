@@ -527,27 +527,27 @@ def main():
         st.error("¡Solo hay una clase en el target! No es un problema de clasificación válido.")
         return
 
-    # ========== MODELO DE LÍNEA BASE ==========
-    st.subheader("Modelo de Línea Base (Después de limpieza)")
-    try:
-        dummy = DummyClassifier(strategy='most_frequent')
-        sample_size = min(1000, len(X))
-        X_sample = X.iloc[:sample_size]
-        y_sample = y.iloc[:sample_size]
-        dummy.fit(X_sample, y_sample)
-        dummy_acc = dummy.score(X_sample, y_sample)
+    # # ========== MODELO DE LÍNEA BASE ==========
+    # st.subheader("Modelo de Línea Base (Después de limpieza)")
+    # try:
+    #     dummy = DummyClassifier(strategy='most_frequent')
+    #     sample_size = min(1000, len(X))
+    #     X_sample = X.iloc[:sample_size]
+    #     y_sample = y.iloc[:sample_size]
+    #     dummy.fit(X_sample, y_sample)
+    #     dummy_acc = dummy.score(X_sample, y_sample)
         
-        st.info(f"Accuracy de línea base (siempre predecir mayoritaria): {dummy_acc:.4f}")
+    #     st.info(f"Accuracy de línea base (siempre predecir mayoritaria): {dummy_acc:.4f}")
         
-        if dummy_acc > 0.95:
-            st.warning("El problema puede ser trivial - accuracy base muy alta")
-        elif dummy_acc > 0.8:
-            st.info("Accuracy base moderada - Problema desbalanceado")
-        else:
-            st.success("Accuracy base normal")
+    #     if dummy_acc > 0.95:
+    #         st.warning("El problema puede ser trivial - accuracy base muy alta")
+    #     elif dummy_acc > 0.8:
+    #         st.info("Accuracy base moderada - Problema desbalanceado")
+    #     else:
+    #         st.success("Accuracy base normal")
             
-    except Exception as e:
-        st.warning(f"No se pudo calcular modelo base: {e}")
+    # except Exception as e:
+    #     st.warning(f"No se pudo calcular modelo base: {e}")
 
     # Mostrar recomendación de técnica
     if minority_ratio < 0.3 and balance_method == 'ninguna':
