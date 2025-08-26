@@ -19,7 +19,7 @@ import time
 
 # Configuración de la página
 st.set_page_config(
-    page_title="AutoML con Diagnóstico Completo",
+    page_title="Modelo automático de predicción",
     page_icon="🤖",
     layout="wide",
 )
