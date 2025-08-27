@@ -391,7 +391,7 @@ def main():
 
         st.subheader("División de datos")
         test_pct = st.slider("% Test", 10, 30, 20, step=5) / 100.0
-        oot_pct = st.slider("% OOT", 10, 30, 20, step=5) / 100.0
+        oot_pct = st.slider("% OOT", 0, 30, 20, step=5) / 100.0
 
         if test_pct + oot_pct >= 1.0:
             st.error("La suma de Test + OOT no puede exceder 100%")
@@ -718,26 +718,26 @@ def main():
             }))
 
         # Validación OOT
-        st.subheader("Validación en OOT (Out-of-Time)")
-        oot_data = []
-        for name in trained_models.keys():
-            oot_data.append({
-                'Modelo': name,
-                f'{metric.upper()} Test': test_metrics[name][metric],
-                f'{metric.upper()} OOT': oot_metrics[name][metric],
-                'Recall Test': test_metrics[name]['recall'],
-                'Recall OOT': oot_metrics[name]['recall'],
-                'Caída OOT': oot_drops[name],
-            })
+        # st.subheader("Validación en OOT (Out-of-Time)")
+        # oot_data = []
+        # for name in trained_models.keys():
+        #     oot_data.append({
+        #         'Modelo': name,
+        #         f'{metric.upper()} Test': test_metrics[name][metric],
+        #         f'{metric.upper()} OOT': oot_metrics[name][metric],
+        #         'Recall Test': test_metrics[name]['recall'],
+        #         'Recall OOT': oot_metrics[name]['recall'],
+        #         'Caída OOT': oot_drops[name],
+        #     })
         
-        oot_df = pd.DataFrame(oot_data)
-        st.dataframe(oot_df.style.format({
-            f'{metric.upper()} Test': '{:.4f}',
-            f'{metric.upper()} OOT': '{:.4f}',
-            'Recall Test': '{:.4f}',
-            'Recall OOT': '{:.4f}',
-            'Caída OOT': '{:.4f}'
-        }))
+        # oot_df = pd.DataFrame(oot_data)
+        # st.dataframe(oot_df.style.format({
+        #     f'{metric.upper()} Test': '{:.4f}',
+        #     f'{metric.upper()} OOT': '{:.4f}',
+        #     'Recall Test': '{:.4f}',
+        #     'Recall OOT': '{:.4f}',
+        #     'Caída OOT': '{:.4f}'
+        # }))
 
         # Matriz de confusión
         if best_name is not None:
