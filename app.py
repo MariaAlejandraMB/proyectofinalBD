@@ -705,6 +705,7 @@ def main():
                     'Recall': test_metrics[name]['recall'],
                     'F1 Score': test_metrics[name]['f1'],
                     'Balanced Acc': test_metrics[name]['balanced_accuracy'],
+                    'Mejores Params': str(training_results[name]['best_params'])
                 })
             
             # Convertir a DataFrame y mostrar
