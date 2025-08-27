@@ -51,7 +51,6 @@ ALGO_KEY = {
     'XGBoost': 'xgboost',
 }
 
-PAYMENT_KEYWORDS = ['payment', 'pay', 'method', 'type', 'credit', 'debit', 'boleto', 'voucher']
 
 # =========================== FUNCIONES DE UTILIDAD ===========================
 def parse_list_from_text(text, cast_fn=float):
@@ -252,70 +251,70 @@ def load_data(file, subsample_size=None):
     return df
 
 # =========================== FUNCIONES DE DIAGNÓSTICO ===========================
-def remove_problematic_variables(X, y, target):
-    """Elimina variables problemáticas y retorna las características limpias"""
-    variables_eliminadas = []
+# def remove_problematic_variables(X, y, target):
+#     """Elimina variables problemáticas y retorna las características limpias"""
+#     variables_eliminadas = []
     
-    # 1. Eliminar variables con correlación casi perfecta (solo si son numéricas)
-    numeric_cols = X.select_dtypes(include=[np.number]).columns
-    if len(numeric_cols) > 0:
-        correlations = X[numeric_cols].corrwith(y).abs().sort_values(ascending=False)
-        high_corr_vars = correlations[correlations > 0.7].index.tolist()
+#     # 1. Eliminar variables con correlación casi perfecta (solo si son numéricas)
+#     numeric_cols = X.select_dtypes(include=[np.number]).columns
+#     if len(numeric_cols) > 0:
+#         correlations = X[numeric_cols].corrwith(y).abs().sort_values(ascending=False)
+#         high_corr_vars = correlations[correlations > 0.7].index.tolist()
         
-        for var in high_corr_vars:
-            if var in X.columns:
-                X = X.drop(columns=[var])
-                variables_eliminadas.append(f"{var} (corr: {correlations[var]:.4f})")
+#         for var in high_corr_vars:
+#             if var in X.columns:
+#                 X = X.drop(columns=[var])
+#                 variables_eliminadas.append(f"{var} (corr: {correlations[var]:.4f})")
 
-    # 2. Eliminar variables relacionadas con payment methods (patrón común)
-    for col in X.columns:
-        if any(keyword in col.lower() for keyword in PAYMENT_KEYWORDS):
-            if col in X.columns:
-                X = X.drop(columns=[col])
-                variables_eliminadas.append(f"{col} (related to payment)")
+#     # 2. Eliminar variables relacionadas con payment methods (patrón común)
+#     for col in X.columns:
+#         if any(keyword in col.lower() for keyword in PAYMENT_KEYWORDS):
+#             if col in X.columns:
+#                 X = X.drop(columns=[col])
+#                 variables_eliminadas.append(f"{col} (related to payment)")
 
-    # 3. Eliminar variables con nombres similares al target
-    for col in X.columns:
-        if target.lower() in col.lower() and col != target:
-            if col in X.columns:
-                X = X.drop(columns=[col])
-                variables_eliminadas.append(f"{col} (similar to target)")
+#     # 3. Eliminar variables con nombres similares al target
+#     for col in X.columns:
+#         if target.lower() in col.lower() and col != target:
+#             if col in X.columns:
+#                 X = X.drop(columns=[col])
+#                 variables_eliminadas.append(f"{col} (similar to target)")
 
-    # 4. Eliminar variables constantes o casi constantes
-    constant_vars = X.columns[X.nunique() <= 1].tolist()
-    for var in constant_vars:
-        if var in X.columns:
-            X = X.drop(columns=[var])
-            variables_eliminadas.append(f"{var} (constant)")
+#     # 4. Eliminar variables constantes o casi constantes
+#     constant_vars = X.columns[X.nunique() <= 1].tolist()
+#     for var in constant_vars:
+#         if var in X.columns:
+#             X = X.drop(columns=[var])
+#             variables_eliminadas.append(f"{var} (constant)")
     
-    return X, variables_eliminadas
+#     return X, variables_eliminadas
 
-def check_data_leakage(X, y, target):
-    """Verifica y reporta problemas de data leakage"""
-    leakage_detected = False
+# def check_data_leakage(X, y, target):
+#     """Verifica y reporta problemas de data leakage"""
+#     leakage_detected = False
     
-    # Verificar si el target está en las features
-    if target in X.columns:
-        st.error(f"DATA LEAKAGE: El target '{target}' está en las features!")
-        X = X.drop(columns=[target])
-        leakage_detected = True
+#     # Verificar si el target está en las features
+#     if target in X.columns:
+#         st.error(f"DATA LEAKAGE: El target '{target}' está en las features!")
+#         X = X.drop(columns=[target])
+#         leakage_detected = True
 
-    # Buscar correlaciones perfectas (solo variables numéricas)
-    numeric_cols = X.select_dtypes(include=[np.number]).columns
-    if len(numeric_cols) > 0:
-        correlations = X[numeric_cols].corrwith(y).abs().sort_values(ascending=False)
-        high_corr = correlations[correlations > 0.7]
-        if len(high_corr) > 0:
-            st.warning("Variables con correlación alta (>0.7):")
-            for var, corr in high_corr.items():
-                st.write(f"- {var}: {corr:.4f}")
-        else:
-            st.success("No hay variables con correlación peligrosa")
+#     # Buscar correlaciones perfectas (solo variables numéricas)
+#     numeric_cols = X.select_dtypes(include=[np.number]).columns
+#     if len(numeric_cols) > 0:
+#         correlations = X[numeric_cols].corrwith(y).abs().sort_values(ascending=False)
+#         high_corr = correlations[correlations > 0.7]
+#         if len(high_corr) > 0:
+#             st.warning("Variables con correlación alta (>0.7):")
+#             for var, corr in high_corr.items():
+#                 st.write(f"- {var}: {corr:.4f}")
+#         else:
+#             st.success("No hay variables con correlación peligrosa")
 
-    if not leakage_detected:
-        st.success("No se detectó data leakage evidente después de la limpieza")
+#     if not leakage_detected:
+#         st.success("No se detectó data leakage evidente después de la limpieza")
     
-    return X, leakage_detected
+#     return X, leakage_detected
 
 def analyze_target_distribution(y):
     """Analiza y visualiza la distribución del target"""
@@ -480,22 +479,22 @@ def main():
     y = df[target]
 
     # ========== LIMPIEZA AUTOMÁTICA DE VARIABLES ==========
-    st.header("Corrección Automática de Data Leakage")
+    # st.header("Corrección Automática de Data Leakage")
     
-    X, variables_eliminadas = remove_problematic_variables(X, y, target)
+    # X, variables_eliminadas = remove_problematic_variables(X, y, target)
 
-    # Mostrar resultados de la limpieza
-    if variables_eliminadas:
-        st.warning("Variables eliminadas automáticamente:")
-        for var in variables_eliminadas:
-            st.write(f"- {var}")
-        st.success(f"Total de variables eliminadas: {len(variables_eliminadas)}")
-        st.info(f"Variables restantes: {X.shape[1]}")
-    else:
-        st.success("No se encontraron variables problemáticas para eliminar")
+    # # Mostrar resultados de la limpieza
+    # if variables_eliminadas:
+    #     st.warning("Variables eliminadas automáticamente:")
+    #     for var in variables_eliminadas:
+    #         st.write(f"- {var}")
+    #     st.success(f"Total de variables eliminadas: {len(variables_eliminadas)}")
+    #     st.info(f"Variables restantes: {X.shape[1]}")
+    # else:
+    #     st.success("No se encontraron variables problemáticas para eliminar")
 
     # ========== ANÁLISIS DE VARIABLES ==========
-    st.subheader("Análisis de Variables (Después de limpieza)")
+    st.subheader("Análisis de Variables")
 
     if X.shape[1] > 20:
         st.write(f"**Total de variables:** {X.shape[1]}")
