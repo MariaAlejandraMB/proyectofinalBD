@@ -374,7 +374,7 @@ def main():
             return
 
         # Parámetros básicos
-        metric_options = ['accuracy', 'f1', 'precision', 'recall', 'balanced_accuracy', 'roc_auc']
+        metric_options = ['accuracy', 'f1', 'precision', 'recall', 'balanced_accuracy']
         metric = st.selectbox("Métrica objetivo", metric_options, index=1)
         cv_folds = st.slider("Folds para validación cruzada", 3, 10, 3)
 
