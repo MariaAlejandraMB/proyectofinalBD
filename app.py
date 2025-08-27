@@ -515,9 +515,9 @@ def main():
             })
         st.table(pd.DataFrame(col_stats).head(10))
 
-    # ========== VERIFICACIÓN OF DATA LEAKAGE ==========
-    st.subheader("Verificación de Data Leakage (Después de limpieza)")
-    X, leakage_detected = check_data_leakage(X, y, target)
+    # # ========== VERIFICACIÓN OF DATA LEAKAGE ==========
+    # st.subheader("Verificación de Data Leakage (Después de limpieza)")
+    # X, leakage_detected = check_data_leakage(X, y, target)
 
     # ========== ANÁLISIS DE DISTRIBUCIÓN DEL TARGET ==========
     st.subheader("Distribución de la Variable Objetivo")
