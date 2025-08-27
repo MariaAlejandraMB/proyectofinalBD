@@ -68,15 +68,23 @@ def compute_metric(y_true, y_pred, metric_name: str) -> float:
     return METRIC_FUNCS[metric_name](y_true, y_pred)
 
 def split_train_test_oot(X, y, test_size, oot_size, random_state=42):
-    """Divide en Test primero y luego separa OOT del remanente, con estratificación."""
+    """Divide en Train, Test y opcionalmente OOT"""
+    # Primero separar Test
     X_temp, X_test, y_temp, y_test = train_test_split(
         X, y, test_size=test_size, stratify=y, random_state=random_state
     )
+
+    if oot_size == 0:
+        # Si no queremos OOT, todo lo demás es Train
+        return X_temp, X_test, pd.DataFrame(), y_temp, y_test, pd.Series(dtype=int)
+
+    # Si sí queremos OOT
     adjusted_oot = oot_size / (1 - test_size)
     X_train, X_oot, y_train, y_oot = train_test_split(
         X_temp, y_temp, test_size=adjusted_oot, stratify=y_temp, random_state=random_state
     )
     return X_train, X_test, X_oot, y_train, y_test, y_oot
+
 
 def plot_confusion_matrix(y_true, y_pred, class_names):
     """Genera una matriz de confusión visual"""
@@ -657,19 +665,21 @@ def main():
                         'report': classification_report(y_test, yp_test, output_dict=True),
                     }
                     
-                    # OOT performance
-                    yp_oot = model.predict(X_oot)
-                    
-                    oot_metrics[name] = {
-                        'accuracy': accuracy_score(y_oot, yp_oot),
-                        'f1': f1_score(y_oot, yp_oot, average='weighted'),
-                        'precision': precision_score(y_oot, yp_oot, average='weighted'),
-                        'recall': recall_score(y_oot, yp_oot, average='weighted'),
-                        'balanced_accuracy': balanced_accuracy_score(y_oot, yp_oot),
-                    }
+                    # OOT performance (solo si el usuario pidió OOT)
+                    if oot_pct > 0 and not X_oot.empty:
+                        yp_oot = model.predict(X_oot)
+                        oot_metrics[name] = {
+                            'accuracy': accuracy_score(y_oot, yp_oot),
+                            'f1': f1_score(y_oot, yp_oot, average='weighted'),
+                            'precision': precision_score(y_oot, yp_oot, average='weighted'),
+                            'recall': recall_score(y_oot, yp_oot, average='weighted'),
+                            'balanced_accuracy': balanced_accuracy_score(y_oot, yp_oot),
+                        }
+                        oot_drops[name] = max(0.0, test_metrics[name][metric] - oot_metrics[name][metric])
+                    else:
+                        oot_metrics[name] = {}
+                        oot_drops[name] = 0.0
 
-                    # Calcular caída en OOT
-                    oot_drops[name] = max(0.0, test_metrics[name][metric] - oot_metrics[name][metric])
 
                     # Verificar si hay sobreajuste perfecto
                     if train_metrics[name]['accuracy'] == 1.0 and test_metrics[name]['accuracy'] == 1.0:
@@ -718,26 +728,30 @@ def main():
             }))
 
         # Validación OOT
-        # st.subheader("Validación en OOT (Out-of-Time)")
-        # oot_data = []
-        # for name in trained_models.keys():
-        #     oot_data.append({
-        #         'Modelo': name,
-        #         f'{metric.upper()} Test': test_metrics[name][metric],
-        #         f'{metric.upper()} OOT': oot_metrics[name][metric],
-        #         'Recall Test': test_metrics[name]['recall'],
-        #         'Recall OOT': oot_metrics[name]['recall'],
-        #         'Caída OOT': oot_drops[name],
-        #     })
-        
-        # oot_df = pd.DataFrame(oot_data)
-        # st.dataframe(oot_df.style.format({
-        #     f'{metric.upper()} Test': '{:.4f}',
-        #     f'{metric.upper()} OOT': '{:.4f}',
-        #     'Recall Test': '{:.4f}',
-        #     'Recall OOT': '{:.4f}',
-        #     'Caída OOT': '{:.4f}'
-        # }))
+        if oot_pct > 0:
+            st.subheader("Validación en OOT (Out-of-Time)")
+            oot_data = []
+            for name in trained_models.keys():
+                oot_data.append({
+                    'Modelo': name,
+                    f'{metric.upper()} Test': test_metrics[name][metric],
+                    f'{metric.upper()} OOT': oot_metrics[name].get(metric, np.nan),
+                    'Recall Test': test_metrics[name]['recall'],
+                    'Recall OOT': oot_metrics[name].get('recall', np.nan),
+                    'Caída OOT': oot_drops[name],
+                })
+            
+            oot_df = pd.DataFrame(oot_data)
+            st.dataframe(oot_df.style.format({
+                f'{metric.upper()} Test': '{:.4f}',
+                f'{metric.upper()} OOT': '{:.4f}',
+                'Recall Test': '{:.4f}',
+                'Recall OOT': '{:.4f}',
+                'Caída OOT': '{:.4f}'
+            }))
+        else:
+            st.info("No se generó conjunto OOT (Out-of-Time).")
+
 
         # Matriz de confusión
         if best_name is not None:
