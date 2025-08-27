@@ -391,7 +391,7 @@ def main():
 
         st.subheader("División de datos")
         test_pct = st.slider("% Test", 10, 30, 20, step=5) / 100.0
-        oot_pct = st.slider("% OOT", 0, 30, 20, step=5) / 100.0
+        oot_pct = st.slider("% OOT", 0, 30, 20, step=1) / 100.0
 
         if test_pct + oot_pct >= 1.0:
             st.error("La suma de Test + OOT no puede exceder 100%")
